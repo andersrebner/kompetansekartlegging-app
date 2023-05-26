@@ -31,4 +31,4 @@ docker rm $dynamo_container_name >/dev/null
 docker stop $cognito_container_name >/dev/null
 docker rm $cognito_container_name >/dev/null
 
-exit $exitCode
+exit $exitCode 
