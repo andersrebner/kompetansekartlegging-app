@@ -63,7 +63,8 @@ jobs:
     with:
       aws_environment: dev
       deploy_backend_only: false
-    #secrets:
+    secrets:
+      DEPLOY_ROLE: ${{ secrets.DEV_DEPLOY_ROLE }}
     #  azure: ${{ secrets.DEV_AZURE }}
     #  SLACK_DEPLOY_WEBHOOK_URL: ${{ secrets.SLACK_DEPLOY_WEBHOOK_URL }}
 
