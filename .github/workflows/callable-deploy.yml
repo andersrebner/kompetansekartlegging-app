@@ -51,7 +51,7 @@ jobs:
           cd cdk && npx cdk deploy \
           --require-approval never \
           --outputs-file outputs.json \
-          --context ENV=rairai22 \
+          --context ENV=rairai23 \
           --context EXCEL=${{ inputs.excel }}
 
       - name: Prepare frontend ${{ inputs.aws_environment }} deployment
