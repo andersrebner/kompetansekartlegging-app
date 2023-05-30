@@ -16,7 +16,6 @@ export class KompetanseFrontendStack extends Stack {
     const websiteBucket = new s3.Bucket(this, 'KompetanseHostingBucket', {
       websiteIndexDocument: 'index.html',
       publicReadAccess: true,
-      blockPublicAccess: BlockPublicAccess.BLOCK_ACLS,
       accessControl: BucketAccessControl.PUBLIC_READ
 
     });
