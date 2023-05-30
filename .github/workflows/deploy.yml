@@ -56,7 +56,7 @@ jobs:
     #if: github.event_name == 'push' && needs.check_files.outputs.any_modified == 'true'
     if: github.event_name == 'push'
     name: Deploy dev on push to main
-    permissions: # These permissions are needed to interact with GitHub's OIDC Token endpoint.
+    permissions: # Needed to interact with GitHub's OIDC Token endpoint
       id-token: write
       contents: read
     uses: ./.github/workflows/callable-deploy.yml
@@ -68,15 +68,14 @@ jobs:
     #  azure: ${{ secrets.DEV_AZURE }}
     #  SLACK_DEPLOY_WEBHOOK_URL: ${{ secrets.SLACK_DEPLOY_WEBHOOK_URL }}
 
-#  deploy_on_workflow_dispatch:
-#    if: github.event_name == 'workflow_dispatch'
-#    name: Deploy on dispatch
-#    uses: ./.github/workflows/callable-deploy.yml
-#    with:
-#      aws_environment: ${{ inputs.aws_environment }}
-#      deploy_backend_only: ${{ inputs.deploy_backend_only }}
-#    secrets:
-#      aws_access_key_id: ${{ inputs.aws_environment == 'prod' && secrets.PROD_AWS_ACCESS_KEY_ID || secrets.DEV_AWS_ACCESS_KEY_ID }}
-#      aws_secret_access_key: ${{ inputs.aws_environment == 'prod' && secrets.PROD_AWS_SECRET_ACCESS_KEY || secrets.DEV_AWS_SECRET_ACCESS_KEY}}
-#      azure: ${{ inputs.aws_environment == 'prod' && secrets.PROD_AZURE || secrets.DEV_AZURE }}
-#      SLACK_DEPLOY_WEBHOOK_URL: ${{ secrets.SLACK_DEPLOY_WEBHOOK_URL }}
+  deploy_on_workflow_dispatch:
+    if: github.event_name == 'workflow_dispatch'
+    name: Deploy on dispatch
+    uses: ./.github/workflows/callable-deploy.yml
+    with:
+      aws_environment: ${{ inputs.aws_environment }}
+      deploy_backend_only: ${{ inputs.deploy_backend_only }}
+    secrets:
+      DEPLOY_ROLE: ${{ inputs.aws_environment == 'prod' && secrets.PROD_DEPLOY_ROLE || secrets.DEV_DEPLOY_ROLE }}
+      #azure: ${{ inputs.aws_environment == 'prod' && secrets.PROD_AZURE || secrets.DEV_AZURE }}
+      #SLACK_DEPLOY_WEBHOOK_URL: ${{ secrets.SLACK_DEPLOY_WEBHOOK_URL }}
