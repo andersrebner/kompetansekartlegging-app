@@ -35,7 +35,7 @@ jobs:
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v2
         with:
-          role-to-assume: arn:aws:iam::075791160426:role/github-actions-deploy-role # TODO: secret?
+          role-to-assume: ${{ inputs.aws_environment == 'prod' && secrets.PROD_DEPLOY_ROLE || secrets.DEV_DEPLOY_ROLE }}
           aws-region: ${{ inputs.aws_region }}
 
       - name: Install packages
