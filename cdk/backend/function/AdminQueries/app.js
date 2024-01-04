@@ -14,6 +14,7 @@
 const express = require('express')
 const bodyParser = require('body-parser')
 const awsServerlessExpressMiddleware = require('aws-serverless-express/middleware')
+const { randomUUID } = require('crypto')
 
 const {
   addUserToGroup,
@@ -21,18 +22,26 @@ const {
   confirmUserSignUp,
   disableUser,
   enableUser,
+  anonymizeUser: anonymizeUserInCognito,
   getUser,
   listUsers,
   listGroups,
   listGroupsForUser,
   listUsersInGroup,
   signUserOut,
+  addUserAttributeToUser,
 } = require('./cognitoActions')
+
+const { anonymizeUser: anonymizeUserInDb } = require('./db')
+const isTest = process.env.JEST_WORKER_ID
 
 const app = express()
 app.use(bodyParser.json())
 app.use(bodyParser.urlencoded({ extended: true }))
-app.use(awsServerlessExpressMiddleware.eventContext())
+// Dont use middleware during tests
+if (isTest == null) {
+  app.use(awsServerlessExpressMiddleware.eventContext())
+}
 
 // Enable CORS for all methods
 app.use((req, res, next) => {
@@ -47,6 +56,8 @@ app.use((req, res, next) => {
 // Only perform tasks if the user is in a specific group
 const allowedGroup = process.env.GROUP
 const allowedListUsersGroup = process.env.GROUP_LIST_USERS
+
+const anonymizedIDAttributeName = process.env.ANONYMIZED_ID_ATTRIBUTE_NAME
 
 const checkGroup = function(req, res, next) {
   if (req.path == '/signUserOut') {
@@ -168,6 +179,45 @@ app.post('/enableUser', async (req, res, next) => {
     res.status(200).json(response)
   } catch (err) {
     next(err)
+  }
+})
+
+app.post('/anonymizeUser', async (req, res, next) => {
+  if (!req.body.username || !req.body.orgId) {
+    const err = new Error('username and orgId is required')
+    err.statusCode = 400
+    return next(err)
+  }
+  const username = req.body.username
+  const orgId = req.body.orgId
+  console.log(`Attempting to anonymize user from ${req.body.orgId}`)
+
+  // Check if user has been assigned an anonymizedID from a failed anonymization run.
+  // If not, create a new anonymizedID to replace 'owner' values in database
+  const user = await getUser(username)
+  const anonymizedID =
+    user.UserAttributes.find(attr => attr.Name === anonymizedIDAttributeName)
+      ?.Value ?? randomUUID()
+
+  try {
+    await anonymizeUserInDb(username, anonymizedID, orgId)
+    await anonymizeUserInCognito(username)
+    return res.status(200).json({ message: 'User anonymized' })
+  } catch (err) {
+    try {
+      // Add anonymizedID attribute to Cognito user in case data was partially anonymized
+      console.log(
+        `User was potentially partially anonymized, adding attribute ${anonymizedIDAttributeName} '${anonymizedID}' to Cognito user`
+      )
+      await addUserAttributeToUser(
+        username,
+        anonymizedIDAttributeName,
+        anonymizedID
+      )
+    } catch (err) {
+      return next(err)
+    }
+    return next(err)
   }
 })
 
@@ -354,12 +404,15 @@ app.use((err, req, res, next) => {
   if (!err.statusCode) err.statusCode = 500 // If err has no specified error code, set error code to 'Internal Server Error (500)'
   res
     .status(err.statusCode)
-    .json({ message: err.message })
+    .json({ custom_error: err.message })
     .end()
 })
 
-app.listen(3000, () => {
+const server = app.listen(3000, () => {
   console.log('App started')
 })
 
-module.exports = app
+module.exports = {
+  app,
+  server,
+}

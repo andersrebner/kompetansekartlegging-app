@@ -132,6 +132,7 @@ const listUsersInGroup = async (
     }
     return { result: Users }
   } catch (e) {
+    console.log(e)
     return {
       error: i18n.t('adminApi.error.couldNotGetAListOfUsersInGroup', {
         groupname: groupname,
@@ -222,6 +223,28 @@ const listAllOrganizationAdministrators = async (): Promise<
   }
 }
 
+const anonymizeUser = async (
+  username: string,
+  orgId: string
+): Promise<ApiResponse<any[]>> => {
+  const apiName = 'AdminQueries'
+  const path = '/anonymizeUser'
+  const myInit = {
+    body: {
+      username,
+      orgId,
+    },
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `${(await Auth.currentSession())
+        .getAccessToken()
+        .getJwtToken()}`,
+    },
+  }
+
+  return await API.post(apiName, path, myInit)
+}
+
 export {
   getUserExists,
   listAllUsers,
@@ -231,4 +254,5 @@ export {
   listSuperAdmins,
   listAdminsInOrganization,
   listAllOrganizationAdministrators,
+  anonymizeUser,
 }

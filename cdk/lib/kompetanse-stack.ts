@@ -47,6 +47,7 @@ export class KompetanseStack extends Stack {
       customAttributes: {
         OrganizationID: new cognito.StringAttribute({ mutable: true }),
         company: new cognito.StringAttribute({ mutable: true }),
+        anonymizedID: new cognito.StringAttribute({ mutable: true }),
       },
       signInAliases: {
         username: true,
@@ -244,6 +245,7 @@ export class KompetanseStack extends Stack {
       APIKeyPermissionTable: `APIKeyPermission-${this.artifactId}`,
       GroupTable: `Group-${this.artifactId}`,
       CategoryTable: `Category-${this.artifactId}`,
+      AnonymizedUserTable: `AnonymizedUser-${this.artifactId}`,
     }
 
     const appSync = new AppSyncTransformer(this, 'Appsync', {
@@ -283,6 +285,8 @@ export class KompetanseStack extends Stack {
           USERPOOL: pool.userPoolId,
           GROUP: 'admin',
           GROUP_LIST_USERS: 'groupLeader',
+          ANONYMIZED_ID_ATTRIBUTE_NAME: 'custom:anonymizedID',
+          TABLE_MAP: JSON.stringify(appSync.tableNameMap),
         },
         initialPolicy: [
           new iam.PolicyStatement({
@@ -296,11 +300,27 @@ export class KompetanseStack extends Stack {
               'cognito-idp:AdminListGroupsForUser',
               'cognito-idp:AdminGetUser',
               'cognito-idp:AdminConfirmSignUp',
+              'cognito-idp:AdminDeleteUser',
+              'cognito-idp:AdminUpdateUserAttributes',
               'cognito-idp:ListUsers',
               'cognito-idp:ListGroups',
+              'dynamodb:Query',
+              'dynamodb:UpdateItem',
+              'dynamodb:PutItem',
+              'dynamodb:DeleteItem',
             ],
             effect: iam.Effect.ALLOW,
-            resources: [pool.userPoolArn],
+            resources: [
+              pool.userPoolArn,
+              tableArns['UserFormTable'],
+              `${tableArns['UserFormTable']}/index/*`,
+              tableArns['QuestionAnswerTable'],
+              `${tableArns['QuestionAnswerTable']}/index/*`,
+              tableArns['UserTable'],
+              `${tableArns['UserTable']}/index/*`,
+              tableArns['AnonymizedUserTable'],
+              `${tableArns['AnonymizedUserTable']}/index/*`,
+            ],
           }),
         ],
       }
@@ -335,6 +355,8 @@ export class KompetanseStack extends Stack {
         `${tableArns['FormDefinitionTable']}/index/*`,
         tableArns['APIKeyPermissionTable'],
         `${tableArns['APIKeyPermissionTable']}/index/*`,
+        tableArns['AnonymizedUserTable'],
+        `${tableArns['AnonymizedUserTable']}/index/*`,
       ],
     })
 
@@ -411,6 +433,8 @@ export class KompetanseStack extends Stack {
           `${tableArns['CategoryTable']}/index/*`,
           tableArns['FormDefinitionTable'],
           `${tableArns['FormDefinitionTable']}/index/*`,
+          tableArns['AnonymizedUserTable'],
+          `${tableArns['AnonymizedUserTable']}/index/*`,
           excelBucket.bucketArn,
           `${excelBucket.bucketArn}/*`,
         ],

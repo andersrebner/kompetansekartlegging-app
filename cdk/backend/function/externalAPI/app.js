@@ -28,6 +28,7 @@ const crypto = require('crypto')
 const {
   getNewestFormDef,
   getAllUsers,
+  getAnonUsers,
   getAllCategories,
   getAllQuestionForFormDef,
   getAnswersForUser,
@@ -100,8 +101,13 @@ router.get('/answers', async (req, res) => {
   const questionMap = mapFromArray(allQuestionsWithCategory, 'id')
 
   // Find all users.
-  const allUsers = await getAllUsers(organization_ID)
+  let allUsers = await getAllUsers(organization_ID)
   //console.log('allUsers:',allUsers);
+
+  if (req.query.include_anonymous === 'true') {
+    const anonUsers = await getAnonUsers(organization_ID)
+    allUsers = allUsers.concat(anonUsers)
+  }
 
   // Find answers for the current form definition for each user.
   const userAnswers = await Promise.all(
@@ -168,7 +174,13 @@ router.get('/answers/:username/newest', async (req, res) => {
 router.get('/users', async (req, res) => {
   const organization_ID = await getOrganizationID()
 
-  const allUsers = await getAllUsers(organization_ID)
+  let allUsers = await getAllUsers(organization_ID)
+
+  if (req.query.include_anonymous === 'true') {
+    const anonUsers = await getAnonUsers(organization_ID)
+    allUsers = allUsers.concat(anonUsers)
+  }
+
   return res.json(
     allUsers
       .filter(u => u.Enabled)
